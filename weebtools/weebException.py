@@ -1,0 +1,2 @@
+class WeebException(Exception):
+    pass
