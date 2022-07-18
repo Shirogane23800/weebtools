@@ -4,7 +4,7 @@ import sys
 import re
 import json
 from pathlib import Path
-from ..utils import getSS, makeDirs, askQuestion, getJsonData, getHash
+from ..utils import getSS, makeDirs, askQuestion, getHash
 from .imageDownloader import ImageDownloader
 from ..weebException import WeebException
 
@@ -98,8 +98,7 @@ class Yande(ImageDownloader):
                     ' '.join(['yande.re',artid,] + sortedTags) + ext)
                     picture = picDir / picTitle
 
-            if ((picture.is_file() or piclink in getJsonData(sourceDir / 'piclinks.txt'))
-                    and askQuestion('Photo already exists, continue?')=='n'):
+            if picture.is_file() and askQuestion('Photo already exists, continue?')=='n':
                 raise WeebException('User cancelled download')
 
             with open(picture,'wb') as f:
