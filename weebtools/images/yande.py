@@ -22,7 +22,7 @@ class Yande(ImageDownloader):
 
         s, soup = getSS(piclink)
 
-        computedArtist = 'NO_ARTIST'
+        artist = 'NO_ARTIST'
         tagTypes = [
             'artist',
             'copyright',
@@ -32,11 +32,11 @@ class Yande(ImageDownloader):
             tag = soup.find('li',class_=f'tag-type-{tt}')
             if tag:
                 t = tag.find('a',href=re.compile('/post\?tags=.*'))
-                computedArtist = t.text
+                artist = t.text
                 break
-        computedArtist = re.sub(r'[\\/:*?"<>|]','_',computedArtist).strip('.')
+        artist = re.sub(r'[\\/:*?"<>|]','_',artist).strip('.')
 
-        artistDir   = self.imgFolder / computedArtist
+        artistDir   = self.imgFolder / artist
         pngDir      = artistDir / 'png'
         jpgDir      = artistDir / 'jpg'
         sourceDir   = artistDir / 'source'
@@ -119,11 +119,11 @@ class Yande(ImageDownloader):
         with self.lock:
             self.updateInfoFile(sourceDir,{
                 'piclink': piclink,
-                'artistLink': f'https://yande.re{t["href"]}' if computedArtist != 'NO_ARTIST' else None,
+                'artistLink': f'https://yande.re{t["href"]}' if artist != 'NO_ARTIST' else None,
                 'explicit': isExplicit,
             })
             self.summary['png' if ext == '.png' else 'jpg'].append({
-                'artist': computedArtist,
+                'artist': artist,
                 'picture': picture,
                 'explicit': isExplicit,
             })
