@@ -19,7 +19,7 @@ def main_utils(args):
         utils.downloadChromeDriver()
 
 def main_img(args):
-    if any(re.match(x,args.url) for x in ImageDownloader.valid['yande']['single']):
+    if ImageDownloader.checkValid(args.url,'yande','single'):
         yande = Yande()
         yande.download_single(args.url)
         yande.printSummary('single')

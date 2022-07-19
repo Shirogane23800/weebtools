@@ -16,6 +16,16 @@ class ImageDownloader:
         },
     }
 
+
+    @classmethod
+    def checkValid(cls,link,site,linkType):
+        cond = any(re.match(x,link) for x in cls.valid[site][linkType])
+        if cls is ImageDownloader:
+            return cond
+        if not cond:
+            raise WeebException(f'Invalid link {link} {site} {linkType}')
+
+
     def __init__(self,**kwargs):
         ''' Parent downloader class, common things go here '''
         self.imgFolder = Path.home() / 'Downloads' / 'images'
@@ -27,10 +37,6 @@ class ImageDownloader:
             'png': [],
             'jpg': [],
         }
-
-    def checkValid(self,link,site,linkType):
-        if not any(re.match(x,link) for x in self.valid[site][linkType]):
-            raise WeebException(f'Invalid link {link} {site} {linkType}')
 
     def updateInfoFile(self,sourceDir,infoData):
         infoFile = sourceDir / 'info.json'
