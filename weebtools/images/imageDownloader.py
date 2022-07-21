@@ -11,7 +11,7 @@ class ImageDownloader:
     valid = {
         'yande': {
             'single': [
-                r'^https://yande.re/post/show/\d+$',
+                r'^https://yande.re/post/show/(\d+)$',
             ],
         },
     }
@@ -41,20 +41,36 @@ class ImageDownloader:
     def updateInfoFile(self,sourceDir,infoData):
         infoFile = sourceDir / 'info.json'
 
-        j = {}
+        now = datetime.datetime.now().strftime('%m-%d-%Y %I:%M:%S %p')
         if infoFile.is_file():
             j = getJsonData(infoFile)
-            j['artistLink'].append(infoData['artistLink'])
-            if infoData['explicit']:
-                j['explicit'].append(infoData['piclink'])
-            j['piclinks'].append(infoData['piclink'])
+            j['lastUpdate'] = now
 
-        writeJsonData({
-            'lastUpdate': datetime.datetime.now().strftime('%m-%d-%Y %I:%M:%S %p'),
-            'artistLink': sorted(set(j.get('artistLink',[infoData['artistLink']]))),
-            'explicit'  : sorted(set(j.get('explicit',[infoData['piclink']] if infoData['explicit'] else [])),reverse=True),
-            'piclinks'  : sorted(set(j.get('piclinks',[infoData['piclink']])),reverse=True),
-        },infoFile)
+            j['artistlink'].append(infoData['artistlink'])
+            j['artistlink'] = sorted(set(j['artistlink']))
+
+            for k,v in self.valid.items():
+                for r in v['single']:
+                    if (com := re.compile(r)).match(infoData['piclink']):
+                        customSort = lambda x: int(com.match(x).group(1))
+
+                        if infoData['explicit']:
+                            j['explicit'][k].append(infoData['piclink'])
+                            j['explicit'][k] = sorted(set(j['explicit'][k]),key=customSort,reverse=True)
+
+                        j['piclinks'][k].append(infoData['piclink'])
+                        j['piclinks'][k] = sorted(set(j['piclinks'][k]),key=customSort,reverse=True)
+
+                        break
+        else:
+            j = {
+                'lastUpdate': now,
+                'artistlink': [infoData['artistlink']],
+                'explicit': { k: [infoData['piclink']] if infoData['explicit'] else [] for k in self.valid },
+                'piclinks': { k: [infoData['piclink']] for k in self.valid },
+            }
+
+        writeJsonData(j,infoFile)
 
     def printSummary(self,state='single'):
         print('='*50)

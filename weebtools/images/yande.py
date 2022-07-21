@@ -121,7 +121,7 @@ class Yande(ImageDownloader):
         with self.lock:
             self.updateInfoFile(sourceDir,{
                 'piclink': piclink,
-                'artistLink': f'https://yande.re{t["href"]}' if artist != 'NO_ARTIST' else None,
+                'artistlink': f'https://yande.re{t["href"]}' if artist != 'NO_ARTIST' else None,
                 'explicit': isExplicit,
             })
             self.summary['png' if ext == '.png' else 'jpg'].append({
