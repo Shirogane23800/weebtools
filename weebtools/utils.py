@@ -14,6 +14,8 @@ import struct
 import binascii
 import json
 from .weebException import WeebException
+import shutil
+import time
 
 
 def getHash(func,x):
@@ -188,6 +190,11 @@ def getSS(link,session=None,parser='html.parser'):
 def makeDirs(*dirs):
     for d in dirs:
         d.mkdir(parents=True,exist_ok=True)
+
+def removeDirs(*dirs):
+    for d in dirs:
+        shutil.rmtree(d,ignore_errors=True)
+        time.sleep(0.5)
 
 def askQuestion(question):
     if not question.endswith(' [y/n]: '):

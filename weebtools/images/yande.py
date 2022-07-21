@@ -5,7 +5,7 @@ import re
 import json
 from pathlib import Path
 from ..utils import (
-    getSS, makeDirs, askQuestion, getHash, sanitize
+    getSS, makeDirs, removeDirs, askQuestion, getHash, sanitize
 )
 from .imageDownloader import ImageDownloader
 from ..weebException import WeebException
@@ -20,7 +20,9 @@ class Yande(ImageDownloader):
         ''' Can be worker or called explcitly for one time download '''
         self.checkValid(piclink,'yande','single')
 
-        print(f'Downloading {piclink}',flush=True)
+        pre = f'{self.picList.index(piclink)+1}. ' if piclink in self.picList else ''
+        with self.lock:
+            print(f'{pre}Downloading {piclink}',flush=True)
 
         s, soup = getSS(piclink)
 
@@ -100,7 +102,8 @@ class Yande(ImageDownloader):
                     ' '.join(['yande.re',artid,] + sortedTags) + ext)
                     picture = picDir / picTitle
 
-            if picture.is_file() and askQuestion('Photo already exists, continue?')=='n':
+            if (not self.summary['artists'] and picture.is_file()
+                    and askQuestion('Photo already exists, continue?')=='n'):
                 raise WeebException('User cancelled download')
 
             with open(picture,'wb') as f:
@@ -129,3 +132,39 @@ class Yande(ImageDownloader):
                 'picture': picture,
                 'explicit': isExplicit,
             })
+
+    def download_artist(self,artistlink):
+        ''' Group download for artist '''
+        self.checkValid(artistlink,'yande','artist')
+
+        s, soup = getSS(artistlink)
+
+        getText = lambda x: x.find('a',href=re.compile('/post\?tags=.*')).text
+        title = getText(soup.find('h2',id='site-title'))
+        try:
+            artist = getText(soup.find('li',class_='tag-type-artist'))
+            assert title == artist
+        except (AttributeError,AssertionError):
+            raise WeebException(f'{artistlink} is not an artist link')
+
+        if (artistDir := Path(self.imgFolder,artist)).is_dir():
+            if askQuestion(f'"{artist}" already exists, continue?')=='n':
+                raise WeebException('User cancelled download')
+            removeDirs(artistDir)
+
+        self.summary['artists'].append(artist)
+
+        print('Fetching page 1')
+        self.picList = [ 'https://yande.re'+x['href']
+                for x in soup.find_all('a',href=re.compile('/post/show/\d+$')) ]
+
+        if pageTag := soup.find('div',id='paginator').find_all('a'):
+            p2href = pageTag[0]['href']
+            for page in range(2,int(pageTag[-2].text)+1):
+                print(f'Fetching page {page}')
+                pageLink = 'https://yande.re'+re.sub('page=2',f'page={page}',p2href)
+                s, soup = getSS(pageLink,s)
+                self.picList += [ 'https://yande.re'+x['href']
+                    for x in soup.find_all('a',href=re.compile('/post/show/\d+$')) ]
+
+        self._download(self.picList)

@@ -4,6 +4,7 @@ from ..weebException import WeebException
 from ..utils import getJsonData, writeJsonData
 import datetime
 from pathlib import Path
+import concurrent.futures
 
 
 class ImageDownloader:
@@ -13,9 +14,13 @@ class ImageDownloader:
             'single': [
                 r'^https://yande.re/post/show/(\d+)$',
             ],
+            'artist': [
+                r'^https://yande.re/post\?tags=.*$',
+            ],
         },
     }
 
+    failFile = Path.home() / '.weebtools' / 'fail.txt'
 
     @classmethod
     def checkValid(cls,link,site,linkType):
@@ -33,7 +38,11 @@ class ImageDownloader:
 
         self.lock = threading.Lock()
 
+        self.picList = []
         self.summary = {
+            'artists': [],
+            'success': [],
+            'fail': [],
             'png': [],
             'jpg': [],
         }
@@ -73,18 +82,52 @@ class ImageDownloader:
         writeJsonData(j,infoFile)
 
     def printSummary(self,state='single'):
+
+        picTypes = [
+            'png',
+            'jpg',
+        ]
+        picData = [ p for x in picTypes for p in self.summary[x] ]
+        if not picData:
+            print('NONE')
+            return
+
         print('='*50)
 
         if state == 'single':
-            summaryData = [l for v in self.summary.values() for l in v]
-            if not summaryData:
-                print('NONE')
-                return
-            sd = summaryData[0]
-            print(f'Artist: {sd["artist"]}')
-            print(f'Title: {sd["picture"].name}')
-            if sd['explicit']:
+            pd = picData[0]
+            print(f'Artist: {pd["artist"]}')
+            print(f'Title: {pd["picture"].name}')
+            if pd['explicit']:
                 print('Explicit: True')
-            print(f'Stored in: {sd["picture"].parent}')
+            print(f'Stored in: {pd["picture"].parent}')
+
+        elif state == 'artist':
+            print(f'Artist: {self.summary["artists"][0]}')
+            print(f'Total pics: {len(picData)}')
+            print('\n'.join(f'{x.upper()}: {len(self.summary[x])}' for x in picTypes))
+            if explicitCount := sum(1 for x in picData if x['explicit']):
+                print(f'Explicit: {explicitCount}')
+            if self.summary['fail']:
+                print(f'Success: {len(self.summary["success"])}')
+                print(f'Fail: {len(self.summary["fail"])}')
+                print(f'View {self.failFile} for failures')
 
         print('='*50)
+
+    def _download(self,piclinks):
+        ''' Multithread download '''
+        print(f'Downloading {len(piclinks)} pics')
+        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as ex:
+            futures = {ex.submit(self.download_single,pl):pl for pl in piclinks}
+
+        for f in concurrent.futures.as_completed(futures):
+            try:
+                f.result()
+                self.summary['success'].append(futures[f])
+            except Exception as e:
+                self.summary['fail'].append(f'{futures[f]} {e}')
+
+        if self.summary['fail']:
+            self.failFile.parent.mkdir(exist_ok=True)
+            self.failFile.write_text('\n'.join(self.summary['fail']))

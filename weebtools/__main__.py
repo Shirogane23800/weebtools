@@ -23,6 +23,10 @@ def main_img(args):
         yande = Yande()
         yande.download_single(args.url)
         yande.printSummary('single')
+    elif ImageDownloader.checkValid(args.url,'yande','artist'):
+        yande = Yande()
+        yande.download_artist(args.url)
+        yande.printSummary('artist')
     else:
         raise WeebException(f'Unsupported url: {args.url}')
 
