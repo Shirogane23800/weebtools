@@ -206,3 +206,6 @@ def getJsonData(jFile):
 def writeJsonData(jData,jFile):
     with open(jFile,'w') as f:
         json.dump(jData,f,indent=4)
+
+def sanitize(x):
+    return re.sub(r'[\\/:*?"<>|]','_',x).strip('.')

@@ -4,7 +4,9 @@ import sys
 import re
 import json
 from pathlib import Path
-from ..utils import getSS, makeDirs, askQuestion, getHash
+from ..utils import (
+    getSS, makeDirs, askQuestion, getHash, sanitize
+)
 from .imageDownloader import ImageDownloader
 from ..weebException import WeebException
 
@@ -34,7 +36,7 @@ class Yande(ImageDownloader):
                 t = tag.find('a',href=re.compile('/post\?tags=.*'))
                 artist = t.text
                 break
-        artist = re.sub(r'[\\/:*?"<>|]','_',artist).strip('.')
+        artist = sanitize(artist)
 
         artistDir   = self.imgFolder / artist
         pngDir      = artistDir / 'png'
