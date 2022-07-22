@@ -31,10 +31,11 @@ def main_img(args):
         raise WeebException(f'Unsupported url: {args.url}')
 
 def getDescription(downloader):
-    if downloader == ImageDownloader:
-        singles = [x for v in downloader.valid.values() for x in v['single'] ]
-        descrip = 'single:\n' + '\n'.join(f' - {s}' for s in singles)
-        return descrip
+    descrip = ''
+    for sv in downloader.valid.values():
+        for k,v in sv.items():
+            descrip += f'{k}:\n' + '\n'.join(f' - {regex}' for regex in v) + '\n'
+    return descrip
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
