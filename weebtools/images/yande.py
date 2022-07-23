@@ -4,7 +4,9 @@ import sys
 import re
 import json
 from pathlib import Path
-from ..utils import getSS, makeDirs, askQuestion, getJsonData, getHash
+from ..utils import (
+    getSS, makeDirs, removeDirs, askQuestion, getHash, sanitize, getJsonData
+)
 from .imageDownloader import ImageDownloader
 from ..weebException import WeebException
 
@@ -18,11 +20,13 @@ class Yande(ImageDownloader):
         ''' Can be worker or called explcitly for one time download '''
         self.checkValid(piclink,'yande','single')
 
-        print(f'Downloading {piclink}',flush=True)
+        pre = f'{self.picList.index(piclink)+1}. ' if piclink in self.picList else ''
+        with self.lock:
+            print(f'{pre}Downloading {piclink}',flush=True)
 
         s, soup = getSS(piclink)
 
-        computedArtist = 'NO_ARTIST'
+        artist = 'NO_ARTIST'
         tagTypes = [
             'artist',
             'copyright',
@@ -32,11 +36,11 @@ class Yande(ImageDownloader):
             tag = soup.find('li',class_=f'tag-type-{tt}')
             if tag:
                 t = tag.find('a',href=re.compile('/post\?tags=.*'))
-                computedArtist = t.text
+                artist = t.text
                 break
-        computedArtist = re.sub(r'[\\/:*?"<>|]','_',computedArtist).strip('.')
+        artist = sanitize(artist)
 
-        artistDir   = self.imgFolder / computedArtist
+        artistDir   = self.imgFolder / artist
         pngDir      = artistDir / 'png'
         jpgDir      = artistDir / 'jpg'
         sourceDir   = artistDir / 'source'
@@ -98,7 +102,7 @@ class Yande(ImageDownloader):
                     ' '.join(['yande.re',artid,] + sortedTags) + ext)
                     picture = picDir / picTitle
 
-            if ((picture.is_file() or piclink in getJsonData(sourceDir / 'piclinks.txt'))
+            if (not self.summary['artists'] and picture.is_file()
                     and askQuestion('Photo already exists, continue?')=='n'):
                 raise WeebException('User cancelled download')
 
@@ -120,11 +124,70 @@ class Yande(ImageDownloader):
         with self.lock:
             self.updateInfoFile(sourceDir,{
                 'piclink': piclink,
-                'artistLink': f'https://yande.re{t["href"]}' if computedArtist != 'NO_ARTIST' else None,
+                'artistlink': f'https://yande.re{t["href"]}' if artist != 'NO_ARTIST' else None,
                 'explicit': isExplicit,
             })
             self.summary['png' if ext == '.png' else 'jpg'].append({
-                'artist': computedArtist,
+                'artist': artist,
                 'picture': picture,
                 'explicit': isExplicit,
             })
+
+    def download_artist(self,artistlink):
+        ''' Group download for artist '''
+        self.checkValid(artistlink,'yande','artist')
+
+        s, soup = getSS(artistlink)
+
+        getText = lambda x: x.find('a',href=re.compile('/post\?tags=.*')).text
+        title = getText(soup.find('h2',id='site-title'))
+        try:
+            artist = getText(soup.find('li',class_='tag-type-artist'))
+            assert title == artist
+        except (AttributeError,AssertionError):
+            raise WeebException(f'{artistlink} is not an artist link')
+
+        artistDir = Path(self.imgFolder,artist)
+        if self.update or self.update_all:
+            if not artistDir.is_dir():
+                raise WeebException(f'"{artist}" does not exist')
+            piclinks = getJsonData(artistDir / 'source' / 'info.json')['piclinks']['yande']
+        elif artistDir.is_dir():
+            if askQuestion(f'"{artist}" already exists, continue?')=='n':
+                raise WeebException('User cancelled download')
+            removeDirs(artistDir)
+
+        self.summary['artists'].append(artist)
+
+        print('Fetching page 1')
+        self.picList = [ 'https://yande.re'+x['href']
+                for x in soup.find_all('a',href=re.compile('/post/show/\d+$')) ]
+
+        if self.update:
+            updateList = self.getLazyUpdates(self.picList,piclinks,init=True)
+            if len(updateList) < len(self.picList):
+                self._download(updateList)
+                return
+
+        if pageTag := soup.find('div',id='paginator').find_all('a'):
+            p2href = pageTag[0]['href']
+            for page in range(2,int(pageTag[-2].text)+1):
+                print(f'Fetching page {page}')
+                pageLink = 'https://yande.re'+re.sub('page=2',f'page={page}',p2href)
+                s, soup = getSS(pageLink,s)
+                sizeb4 = len(self.picList)
+                self.picList += [ 'https://yande.re'+x['href']
+                    for x in soup.find_all('a',href=re.compile('/post/show/\d+$')) ]
+
+                if self.update:
+                    updateList += self.getLazyUpdates(self.picList[sizeb4:],piclinks)
+                    if len(updateList) < len(self.picList):
+                        self._download(updateList)
+                        return
+
+        if self.update_all:
+            self.picList = self.getAllUpdates(self.picList,piclinks)
+            if not self.picList:
+                raise WeebException('Everything up to date')
+
+        self._download(self.picList)

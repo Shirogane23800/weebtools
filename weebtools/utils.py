@@ -14,6 +14,8 @@ import struct
 import binascii
 import json
 from .weebException import WeebException
+import shutil
+import time
 
 
 def getHash(func,x):
@@ -189,6 +191,11 @@ def makeDirs(*dirs):
     for d in dirs:
         d.mkdir(parents=True,exist_ok=True)
 
+def removeDirs(*dirs):
+    for d in dirs:
+        shutil.rmtree(d,ignore_errors=True)
+        time.sleep(0.5)
+
 def askQuestion(question):
     if not question.endswith(' [y/n]: '):
         question += ' [y/n]: '
@@ -206,3 +213,6 @@ def getJsonData(jFile):
 def writeJsonData(jData,jFile):
     with open(jFile,'w') as f:
         json.dump(jData,f,indent=4)
+
+def sanitize(x):
+    return re.sub(r'[\\/:*?"<>|]','_',x).strip('.')
