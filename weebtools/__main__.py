@@ -26,6 +26,7 @@ def main_img(args):
     elif ImageDownloader.checkValid(args.url,'yande','artist'):
         yande = Yande(
             update=args.update,
+            update_all=args.update_all,
         )
         yande.download_artist(args.url)
         yande.printSummary('artist')
@@ -68,6 +69,9 @@ if __name__ == '__main__':
     group.add_argument('-u','--update',
         action='store_true',
         help='Downloads until the latest data have been found')
+    group.add_argument('-ua','--update_all',
+        action='store_true',
+        help='Downloads any missing data')
 
     imageParser = subparsers.add_parser('img',
         formatter_class=argparse.RawTextHelpFormatter,

@@ -148,7 +148,7 @@ class Yande(ImageDownloader):
             raise WeebException(f'{artistlink} is not an artist link')
 
         artistDir = Path(self.imgFolder,artist)
-        if self.update:
+        if self.update or self.update_all:
             if not artistDir.is_dir():
                 raise WeebException(f'"{artist}" does not exist')
             piclinks = getJsonData(artistDir / 'source' / 'info.json')['piclinks']['yande']
@@ -184,5 +184,10 @@ class Yande(ImageDownloader):
                     if len(updateList) < len(self.picList):
                         self._download(updateList)
                         return
+
+        if self.update_all:
+            self.picList = self.getAllUpdates(self.picList,piclinks)
+            if not self.picList:
+                raise WeebException('Everything up to date')
 
         self._download(self.picList)

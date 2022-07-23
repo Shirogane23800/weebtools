@@ -49,6 +49,10 @@ class ImageDownloader:
         }
 
         self.update = kwargs.get('update')
+        self.update_all = kwargs.get('update_all')
+
+        if self.update and self.update_all:
+            raise WeebException('--update / --update_all are mutually exclusive')
 
     def updateInfoFile(self,sourceDir,infoData):
         infoFile = sourceDir / 'info.json'
@@ -143,3 +147,6 @@ class ImageDownloader:
             raise WeebException('Everything up to date')
 
         return updateList
+
+    def getAllUpdates(self,listAll,listCurrent):
+        return [ x for x in listAll if x not in listCurrent ]
