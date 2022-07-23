@@ -5,7 +5,7 @@ import re
 import json
 from pathlib import Path
 from ..utils import (
-    getSS, makeDirs, removeDirs, askQuestion, getHash, sanitize
+    getSS, makeDirs, removeDirs, askQuestion, getHash, sanitize, getJsonData
 )
 from .imageDownloader import ImageDownloader
 from ..weebException import WeebException
@@ -147,7 +147,12 @@ class Yande(ImageDownloader):
         except (AttributeError,AssertionError):
             raise WeebException(f'{artistlink} is not an artist link')
 
-        if (artistDir := Path(self.imgFolder,artist)).is_dir():
+        artistDir = Path(self.imgFolder,artist)
+        if self.update:
+            if not artistDir.is_dir():
+                raise WeebException(f'"{artist}" does not exist')
+            piclinks = getJsonData(artistDir / 'source' / 'info.json')['piclinks']['yande']
+        elif artistDir.is_dir():
             if askQuestion(f'"{artist}" already exists, continue?')=='n':
                 raise WeebException('User cancelled download')
             removeDirs(artistDir)
@@ -158,13 +163,26 @@ class Yande(ImageDownloader):
         self.picList = [ 'https://yande.re'+x['href']
                 for x in soup.find_all('a',href=re.compile('/post/show/\d+$')) ]
 
+        if self.update:
+            updateList = self.getLazyUpdates(self.picList,piclinks,init=True)
+            if len(updateList) < len(self.picList):
+                self._download(updateList)
+                return
+
         if pageTag := soup.find('div',id='paginator').find_all('a'):
             p2href = pageTag[0]['href']
             for page in range(2,int(pageTag[-2].text)+1):
                 print(f'Fetching page {page}')
                 pageLink = 'https://yande.re'+re.sub('page=2',f'page={page}',p2href)
                 s, soup = getSS(pageLink,s)
+                sizeb4 = len(self.picList)
                 self.picList += [ 'https://yande.re'+x['href']
                     for x in soup.find_all('a',href=re.compile('/post/show/\d+$')) ]
+
+                if self.update:
+                    updateList += self.getLazyUpdates(self.picList[sizeb4:],piclinks)
+                    if len(updateList) < len(self.picList):
+                        self._download(updateList)
+                        return
 
         self._download(self.picList)

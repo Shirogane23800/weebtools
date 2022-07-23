@@ -24,7 +24,9 @@ def main_img(args):
         yande.download_single(args.url)
         yande.printSummary('single')
     elif ImageDownloader.checkValid(args.url,'yande','artist'):
-        yande = Yande()
+        yande = Yande(
+            update=args.update,
+        )
         yande.download_artist(args.url)
         yande.printSummary('artist')
     else:
@@ -62,6 +64,10 @@ if __name__ == '__main__':
     parent_subparser = argparse.ArgumentParser(add_help=False)
     parent_subparser.add_argument('url',
         help='Top level url')
+    group = parent_subparser.add_mutually_exclusive_group()
+    group.add_argument('-u','--update',
+        action='store_true',
+        help='Downloads until the latest data have been found')
 
     imageParser = subparsers.add_parser('img',
         formatter_class=argparse.RawTextHelpFormatter,

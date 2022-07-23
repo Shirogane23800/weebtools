@@ -5,6 +5,7 @@ from ..utils import getJsonData, writeJsonData
 import datetime
 from pathlib import Path
 import concurrent.futures
+import itertools
 
 
 class ImageDownloader:
@@ -46,6 +47,8 @@ class ImageDownloader:
             'png': [],
             'jpg': [],
         }
+
+        self.update = kwargs.get('update')
 
     def updateInfoFile(self,sourceDir,infoData):
         infoFile = sourceDir / 'info.json'
@@ -131,3 +134,12 @@ class ImageDownloader:
         if self.summary['fail']:
             self.failFile.parent.mkdir(exist_ok=True)
             self.failFile.write_text('\n'.join(self.summary['fail']))
+
+    def getLazyUpdates(self,listAll,listCurrent,init=False):
+        updateList = list(itertools.takewhile(
+                lambda x: x not in listCurrent,listAll))
+
+        if init and not updateList:
+            raise WeebException('Everything up to date')
+
+        return updateList
