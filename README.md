@@ -2,47 +2,83 @@
 
 A tool mostly for downloading anime related stuff.
 
-### Installation
+## Installation
 `pip install weebtools`
-
 
 ## Usage
 weebtools uses subcommands to split functionality. Each subcommand has their own arguments and options.
 
 ## CLI
+---
 
-## utils
+### Top level options:
+ - `--help` - Prints help, also shows subcommands
+ - `--version` - Prints package version
+
+Examples:
+```
+python -m weebtools --help
+python -m weebtools --version
+```
+---
+### utils
 
 - Used mostly for miscellaneous helper functions
 - Be sure to add `$HOME/bin` to your environment `$PATH` veriable
 
-Print help
+#### General usage
 
-`python -m weebtools utils --help`
+`python -m weebtools utils [some_option(s)]`
 
-Prints current google chrome version
+Options:
+  - `--help` - Print help
+  - `--getChromeVersion` - Prints current google chrome version
+  - `--getChromeDriverVersion` - Prints current chrome driver version, looking in `$HOME/bin`
+  - `--downloadChromeDriver` - Downloads latest chrome driver for your google chrome version
 
-`python -m weebtools utils --getChromeVersion`
+Examples
+```
+python -m weebtools utils --help
+python -m weebtools utils --getChromeVersion
+python -m weebtools utils --getChromeDriverVersion
+python -m weebtools utils --downloadChromeDriver
+```
 
-Prints current chrome driver version, looking in `$HOME/bin`
+---
+### img
 
-`python -m weebtools utils --getChromeDriverVersion`
+Sites and url format supported:
+- yande.re
+  - `https://yande.re/post/show/[PIC_ID]`
+  - `https://yande.re/post?tags=[ARTIST_TAG_NAME]`
+- More to come!
 
-Downloads latest chrome driver for your google chrome version
-
-`python -m weebtools utils --downloadChromeDriver`
-
-## img
-
-- Manage and download images to `$HOME/Downloads/images`
-
-Print help
-
-`python -m weebtools img --help`
-
-#### Downloading images
-
+#### General usage:
 `python -m weebtools img <piclink> [some_option(s)]`
+
+Options:
+  - No options given:
+    - If link type is single, downloads the image
+    - If link type is artist, downloads all images from that artist
+  - `-h / --help`
+    - Prints help
+    - Shows what links are supported as well as link type (single vs artist)
+  - `-u / --update`
+    - If artist folder exist, gets new updates / images until it finds it finds an existing image. (Lazy update)
+    - This is particularly useful if the url supplied has lots of pages and you don't want to wait for all page iterations
+  - `-ua / --update_all`
+    - If artist folder exist, gets any missing images.
+
+Examples:
+```
+python -m weebtools img -h                                                 # Prints help
+python -m weebtools img https://yande.re/post/show/[PIC_ID]                # Downloads single image
+python -m weebtools img https://yande.re/post?tags=[ARTIST_TAG_NAME]       # Downloads all images from this artist
+python -m weebtools img https://yande.re/post?tags=[ARTIST_TAG_NAME] -u    # Lazy update on this artist
+python -m weebtools img https://yande.re/post?tags=[ARTIST_TAG_NAME] -ua   # Updates with any missing images
+```
+
+
 
 Images are downloaded to `$HOME/Downloads/images`
 
@@ -80,11 +116,7 @@ $HOME/Downloads/images
 |...
 ```
 
-Sites and url format supported:
-- yande.re
-  - https://yande.re/post/show/[...]
-- More to come!
-
+---
 ## As a module
 ```python
 >>> from weebtools.utils import *
