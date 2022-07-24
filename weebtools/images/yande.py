@@ -12,6 +12,9 @@ from ..utils import (
 )
 from ..weebException import WeebException
 
+'''
+Yes, I'm aware there's an api for this, but it has its limitations
+'''
 
 class Yande(ImageDownloader):
 
@@ -69,9 +72,8 @@ class Yande(ImageDownloader):
             if respInfo['file_size'] != int(r.headers['Content-Length']):
                 raise WeebException('File size server mismatch ?')
 
-            # extension
-            ext = '.png' if r.headers['Content-Type'] == 'image/png' else '.jpg'
-            if ext[1:] != respInfo['file_ext']:
+            ext = 'png' if r.headers['Content-Type'] == 'image/png' else 'jpg'
+            if ext != respInfo['file_ext']:
                 raise WeebException('Wrong file extension')
 
             # picture title
@@ -80,21 +82,18 @@ class Yande(ImageDownloader):
                 for x in soup.find_all('li',class_=re.compile('tag-type.*')))
             if respInfo['tags'] != ' '.join(sortedTags):
                 raise WeebException('Wrong tags in file name')
-            picTitle = re.sub(r'[\\/:*?"<>|]','_',
-                ' '.join(['yande.re',str(respInfo['id'])] + sortedTags) + ext)
+            picTitle = sanitize(' '.join(
+                ['yande.re',str(respInfo['id'])] + sortedTags) + f'.{ext}')
 
-            # picture directory
-            picDir = pngDir if ext == '.png' else jpgDir
-
-            # picture
+            picDir = pngDir if ext == 'png' else jpgDir
             picture = picDir / picTitle
 
             # windows only allow max 255(260?) chars for file path
             if sys.platform == 'win32':
                 while len(str(picture)) >= 255:
                     sortedTags = sortedTags[:-1]
-                    picTitle = re.sub(r'[\\/:*?"<>|]','_',
-                    ' '.join(['yande.re',artid,] + sortedTags) + ext)
+                    picTitle = sanitize(' '.join(
+                        ['yande.re',artid,] + sortedTags) + f'.{ext}')
                     picture = picDir / picTitle
 
             if (not self.summary['artists'] and picture.is_file()
@@ -122,7 +121,7 @@ class Yande(ImageDownloader):
                 'artistlink': f'https://yande.re{t["href"]}' if artist != 'NO_ARTIST' else None,
                 'explicit': isExplicit,
             })
-            self.summary['png' if ext == '.png' else 'jpg'].append({
+            self.summary[ext].append({
                 'artist': artist,
                 'picture': picture,
                 'explicit': isExplicit,
@@ -142,7 +141,9 @@ class Yande(ImageDownloader):
         except (AttributeError,AssertionError):
             raise WeebException(f'{artistlink} is not an artist link')
 
-        artistDir = Path(self.imgFolder,artist)
+        print(f'Artist: {artist}')
+
+        artistDir = self.imgFolder / artist
         if self.update or self.update_all:
             if not artistDir.is_dir():
                 raise WeebException(f'"{artist}" does not exist')

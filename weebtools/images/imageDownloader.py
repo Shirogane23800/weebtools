@@ -114,7 +114,7 @@ class ImageDownloader:
         ]
         picData = [ p for x in picTypes for p in self.summary[x] ]
         if not picData:
-            print('NONE')
+            print('NO SUMMARY')
             return
 
         print('='*50)
