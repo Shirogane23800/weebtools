@@ -1,11 +1,15 @@
-import threading
-import re
-from ..weebException import WeebException
-from ..utils import getJsonData, writeJsonData
-import datetime
-from pathlib import Path
 import concurrent.futures
+import datetime
 import itertools
+import re
+import threading
+
+from pathlib import Path
+
+from ..utils import (
+    getJsonData, writeJsonData, makeDirs,
+)
+from ..weebException import WeebException
 
 
 class ImageDownloader:

@@ -1,13 +1,15 @@
-import requests
-from bs4 import BeautifulSoup
-import sys
-import re
 import json
+import re
+import requests
+import sys
+
+from bs4 import BeautifulSoup
 from pathlib import Path
-from ..utils import (
-    getSS, makeDirs, removeDirs, askQuestion, getHash, sanitize, getJsonData
-)
+
 from .imageDownloader import ImageDownloader
+from ..utils import (
+    getSS, removeDirs, askQuestion, getHash, sanitize, getJsonData
+)
 from ..weebException import WeebException
 
 

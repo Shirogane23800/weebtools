@@ -1,21 +1,22 @@
-import argparse
-from pathlib import Path
-import sys
-import subprocess as sp
-import re
-import os
-import requests
-from bs4 import BeautifulSoup
-import hashlib
-import zipfile
-import crc32c
 import base64
-import struct
 import binascii
+import crc32c
+import hashlib
 import json
-from .weebException import WeebException
+import os
+import re
+import requests
 import shutil
+import subprocess as sp
+import struct
+import sys
 import time
+import zipfile
+
+from bs4 import BeautifulSoup
+from pathlib import Path
+
+from .weebException import WeebException
 
 
 _APP_DIR = Path.home() / '.weebtools'
