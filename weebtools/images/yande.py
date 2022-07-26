@@ -41,14 +41,7 @@ class Yande(ImageDownloader):
                 artist = t.text
                 break
         artist = sanitize(artist)
-
-        artistDir   = self.imgFolder / artist
-        pngDir      = artistDir / 'png'
-        jpgDir      = artistDir / 'jpg'
-        sourceDir   = artistDir / 'source'
-
-        with self.lock:
-            makeDirs(artistDir,pngDir,jpgDir,sourceDir)
+        pngDir, jpgDir, sourceDir = self.setupArtistDir(artist)
 
         respInfo = json.loads(re.match('.*?({.*}).*',
             soup.find('div',id='post-view').find('script').text).group(1))['posts'][0]

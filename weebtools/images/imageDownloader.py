@@ -154,3 +154,12 @@ class ImageDownloader:
 
     def getAllUpdates(self,listAll,listCurrent):
         return [ x for x in listAll if x not in listCurrent ]
+
+    def setupArtistDir(self,artist):
+        artistDir   = self.imgFolder / artist
+        pngDir      = artistDir / 'png'
+        jpgDir      = artistDir / 'jpg'
+        sourceDir   = artistDir / 'source'
+        with self.lock:
+            makeDirs(artistDir,pngDir,jpgDir,sourceDir)
+        return pngDir, jpgDir, sourceDir
