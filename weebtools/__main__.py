@@ -31,6 +31,10 @@ def main_img(args):
         )
         yande.download_artist(args.url)
         yande.printSummary('artist')
+    elif ImageDownloader.checkValid(args.url,'pixiv','single'):
+        pix = Pixiv()
+        pix.download_single(args.url)
+        pix.printSummary('single')
     else:
         raise WeebException(f'Unsupported url: {args.url}')
 
