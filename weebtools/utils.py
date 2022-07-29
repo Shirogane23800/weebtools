@@ -18,6 +18,10 @@ import shutil
 import time
 
 
+_APP_DIR = Path.home() / '.weebtools'
+_APP_DIR.mkdir(exist_ok=True)
+
+
 def getHash(func,x):
     '''
     func        - hash function - md5 / sha1
@@ -77,9 +81,9 @@ def getChromeVersion():
 def getChromeDriverVersion():
     '''
     returns MAJOR.MINOR.BUILD.PATCH
-    returns None if chrome driver not found in bin
+    returns None if chrome driver not found in _APP_DIR
     '''
-    chromeDriver = Path.home() / 'bin' / 'chromedriver.exe'
+    chromeDriver = _APP_DIR / 'chromedriver.exe'
 
     if not chromeDriver.is_file():
         return None
@@ -89,7 +93,7 @@ def getChromeDriverVersion():
 
 def downloadChromeDriver():
     '''
-    Downloads chrome driver to $HOME/bin
+    Downloads chrome driver to _APP_DIR
     Validates download with response checksum headers
     '''
     currentChromeVersion = getChromeVersion()
@@ -116,10 +120,7 @@ def downloadChromeDriver():
 
     print(f'Downloading ChromeDriver',flush=True)
 
-    binFolder = Path.home() / 'bin'
-    binFolder.mkdir(exist_ok=True)
-
-    zipFile = binFolder / f'chromedriver_win32_{newVer}.zip'
+    zipFile = _APP_DIR / f'chromedriver_win32_{newVer}.zip'
     with requests.get(f'{base}/{newVer}/chromedriver_win32.zip',stream=True) as r:
         if not r.status_code == 200:
             print(f'Error getting new ChromeDriver: {r.status_code}')
@@ -157,13 +158,13 @@ def downloadChromeDriver():
         print('ETag md5sum checksum failure')
         return
 
-    chromeDriver = binFolder / 'chromedriver.exe'
+    chromeDriver = _APP_DIR / 'chromedriver.exe'
     if chromeDriver.is_file():
         print(f'Removing old chromedriver {oldChromeDriverVersion}',flush=True)
         chromeDriver.unlink()
 
     with zipfile.ZipFile(zipFile) as zp:
-        zp.extract('chromedriver.exe',path=binFolder)
+        zp.extract('chromedriver.exe',path=_APP_DIR)
 
     if not chromeDriver.is_file():
         print(f'Extraction fail, check {zipFile}')
