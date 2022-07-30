@@ -38,6 +38,7 @@ def main_img(args):
     elif ImageDownloader.checkValid(args.url,'pixiv','artist'):
         pix = Pixiv(
             update=args.update,
+            update_all=args.update_all,
         )
         try:
             pix.download_artist(args.url)

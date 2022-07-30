@@ -104,7 +104,7 @@ class Pixiv(ImageDownloader):
         self.driver = getSeleniumDriver(headless=False) # headless mode won't log in...
 
         artistDir = self.imgFolder / artist
-        if self.update:
+        if self.update or self.update_all:
             if not artistDir.is_dir():
                 raise WeebException(f'"{artist}" does not exist')
             piclinks = getJsonData(artistDir / 'source' / 'info.json')['piclinks']['pixiv']
@@ -166,10 +166,15 @@ class Pixiv(ImageDownloader):
 
         self.close()
 
-        # non logged in vs logged in photos
-        r = requests.get(f'https://www.pixiv.net/ajax/user/{artistID}/profile/all')
-        print(f'Pictures without login: {len(r.json()["body"]["illusts"])}')
-        print(f'Pictures with login: {len(self.picList)}')
+        if self.update_all:
+            self.picList = self.getAllUpdates(self.picList,piclinks)
+            if not self.picList:
+                raise WeebException('Everything up to date')
+        else:
+            # non logged in vs logged in photos
+            r = requests.get(f'https://www.pixiv.net/ajax/user/{artistID}/profile/all')
+            print(f'Pictures without login: {len(r.json()["body"]["illusts"])}')
+            print(f'Pictures with login: {len(self.picList)}')
 
         self._download(self.picList)
 
