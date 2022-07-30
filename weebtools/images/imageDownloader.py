@@ -27,6 +27,12 @@ class ImageDownloader:
             'single': [
                 r'^https://www.pixiv.net/en/artworks/(\d+)$',
             ],
+            'artist': [
+                r'^https://www.pixiv.net/en/users/(\d+)/?$',
+                r'^https://www.pixiv.net/en/users/(\d+)/artworks.*$',
+                r'^https://www.pixiv.net/en/users/(\d+)/illustrations.*$',
+                r'^https://www.pixiv.net/en/users/(\d+)/bookmarksi.*$',
+            ],
         },
     }
 

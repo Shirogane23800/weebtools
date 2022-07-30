@@ -1,9 +1,11 @@
 import base64
 import binascii
 import crc32c
+import getpass
 import hashlib
 import json
 import os
+import pickle
 import re
 import requests
 import shutil
@@ -14,7 +16,21 @@ import time
 import zipfile
 
 from bs4 import BeautifulSoup
+from cryptography.hazmat.backends import default_backend
+from cryptography.fernet import Fernet, InvalidToken
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import padding, rsa
+from cryptography.hazmat.primitives.serialization import (
+    Encoding, load_pem_private_key, NoEncryption,
+    PrivateFormat, PublicFormat,
+)
 from pathlib import Path
+from selenium import webdriver
+from selenium.common.exceptions import (
+    SessionNotCreatedException,
+    WebDriverException,
+)
+from selenium.webdriver.chrome.options import Options
 
 from .weebException import WeebException
 
@@ -218,3 +234,140 @@ def writeJsonData(jData,jFile):
 
 def sanitize(x):
     return re.sub(r'[\\/:*?"<>|]','_',x).strip('.')
+
+def getUserPass(site):
+    '''
+    Encrypts a file with username / password on disk,
+    asks for credentials if not given already.
+    Probably not the safest to use for super secret personal stuff,
+    but does a good job keeping login credentials out of clear text,
+    ...at least for all weebs purposes :V
+
+    From the cryptography module:
+    This is a “Hazardous Materials” module.
+    You should ONLY use it if you’re 100% absolutely sure
+    that you know what you’re doing because this module is full of
+    land mines, dragons, and dinosaurs with laser guns.
+    '''
+    print(f'Getting login info for {site}')
+
+    ef = _APP_DIR / 'wt.enc'
+    dk = _APP_DIR / 'wt.pem'
+
+    header = '\n'.join([
+        '='*50,
+        f'This is a one time operation to login {site}',
+        '='*50,
+        'Data will be encrypted on disk',
+        'Note: Password will not show when typed',
+        ''
+    ])
+    kp = padding.OAEP(
+        mgf=padding.MGF1(algorithm=hashes.SHA256()),
+        algorithm=hashes.SHA256(),
+        label=None)
+
+    def _getValidCredentials():
+        try:
+            username = input('Username: ')
+        except KeyboardInterrupt:
+            raise WeebException('User cancelled operation')
+        if not username:
+            raise WeebException('Username cannot be empty')
+        try:
+            password = getpass.getpass('Password: '),
+        except KeyboardInterrupt:
+            raise WeebException('User cancelled operation')
+        if not password:
+            raise WeebException('Password cannot be empty')
+        return username, password
+
+    if ef.is_file():
+
+        if not dk.is_file():
+            raise WeebException(f'ERROR: DECRYPTION KEY {dk} MISSING!!!')
+
+        try:
+            ek = load_pem_private_key(dk.read_bytes(),None)
+        except ValueError as e:
+            print(e)
+            raise WeebException(f'ERROR: DECRYPTION KEY LOAD FAIL, KEY {dk} TAMPERRED??')
+
+        try:
+            ed = pickle.loads(ef.read_bytes())
+        except pickle.UnpicklingError:
+            raise WeebException('Corrupted encrypted file?')
+
+        fk = ek.decrypt(ed['k'],kp)
+        f = Fernet(fk)
+
+        try:
+            j = json.loads(base64.b64decode(f.decrypt(ed['d'])))
+        except InvalidToken:
+            raise WeebException('Decryption failed, encrypted file has been tampered?')
+
+        if not j.get(site):
+            print(header)
+            username, password = _getValidCredentials()
+            j[site] = {
+                'username': username,
+                'password': password,
+            }
+            ed['d'] = f.encrypt(
+                base64.b64encode(json.dumps(j).encode('utf-8')))
+            ef.write_bytes(pickle.dumps(ed))
+    else:
+        print(header)
+        username, password = _getValidCredentials()
+        j = {
+            site: {
+                'username': username,
+                'password': password,
+            },
+        }
+        ek = rsa.generate_private_key(
+            public_exponent=65537,
+            key_size=4096,
+            backend=default_backend())
+        dk.write_bytes(ek.private_bytes(
+            encoding=Encoding.PEM,
+            format=PrivateFormat.PKCS8,
+            encryption_algorithm=NoEncryption()))
+
+        fk = Fernet.generate_key()
+        ed = {
+            'd': Fernet(fk).encrypt(
+                base64.b64encode(json.dumps(j).encode('utf-8'))),
+            'k': ek.public_key().encrypt(fk,kp),
+        }
+        ef.write_bytes(pickle.dumps(ed))
+        print(f'Encrypted in {ef}')
+
+    return j[site]['username'], j[site]['password']
+
+def getSeleniumDriver(headless=True):
+    chrome_options = Options()
+    if headless:
+        chrome_options.add_argument('--headless')
+    chrome_options.add_experimental_option(
+        'excludeSwitches',
+        ['enable-logging','enable-automation'])
+    chrome_options.add_experimental_option(
+        'useAutomationExtension', False)
+    chrome_options.add_experimental_option('prefs',{
+        'profile.default_content_setting_values.notifications': 2,
+        'credentials_enable_service': False,
+        'profile.password_manager_enabled': False})
+
+    if not getChromeVersion():
+        raise WeebException('Download Google Chrome to get driver')
+
+    driverOps = {
+        'executable_path': _APP_DIR / 'chromedriver.exe',
+        'chrome_options': chrome_options,
+    }
+    try:
+        return webdriver.Chrome(**driverOps)
+    except (SessionNotCreatedException,WebDriverException):
+        downloadChromeDriver()
+        return webdriver.Chrome(**driverOps)

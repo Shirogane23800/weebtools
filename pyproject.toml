@@ -22,9 +22,11 @@ classifiers = [
 ]
 
 dependencies = [
-    'requests >= 2.27.1',
     'beautifulsoup4 >= 4.11.1',
     'crc32c',
+    'cryptography >= 37.0.4',
+    'requests >= 2.27.1',
+    'selenium >= 4.3.0',
 
     # conditionals
     'pywin32 >= 304; sys_platform == "win32"',

@@ -35,6 +35,13 @@ def main_img(args):
         pix = Pixiv()
         pix.download_single(args.url)
         pix.printSummary('single')
+    elif ImageDownloader.checkValid(args.url,'pixiv','artist'):
+        pix = Pixiv()
+        try:
+            pix.download_artist(args.url)
+        finally:
+            pix.close()
+        pix.printSummary('artist')
     else:
         raise WeebException(f'Unsupported url: {args.url}')
 
