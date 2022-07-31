@@ -9,7 +9,8 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from .imageDownloader import ImageDownloader
 from ..utils import (
-    askQuestion, getSeleniumDriver, getSS, getUserPass, removeDirs, sanitize,
+    askQuestion, getSeleniumDriver, getJsonData,
+    getSS, getUserPass, removeDirs, sanitize,
 )
 from ..weebException import WeebException
 
@@ -53,7 +54,7 @@ class Pixiv(ImageDownloader):
                 picDir = pngDir if ext == 'png' else jpgDir
                 picture = picDir / picTitle
 
-                if picture.is_file():
+                if not self.summary['artists'] and picture.is_file():
                     if pageCount > 1:
                         continue
                     elif askQuestion(f'Picture p{p} already eixsts, continue?')=='n':
@@ -103,7 +104,11 @@ class Pixiv(ImageDownloader):
         self.driver = getSeleniumDriver(headless=False) # headless mode won't log in...
 
         artistDir = self.imgFolder / artist
-        if artistDir.is_dir():
+        if self.update:
+            if not artistDir.is_dir():
+                raise WeebException(f'"{artist}" does not exist')
+            piclinks = getJsonData(artistDir / 'source' / 'info.json')['piclinks']['pixiv']
+        elif artistDir.is_dir():
             if askQuestion(f'"{artist}" already exists, continue?')=='n':
                 raise WeebException('User cancelled download')
             removeDirs(artistDir)
@@ -129,6 +134,12 @@ class Pixiv(ImageDownloader):
             for x in soup.find_all('a',href=re.compile(r'^/en/artworks/\d+$'))
             if x.find() ] # this removes duplicates
 
+        if self.update:
+            updateList = self.getLazyUpdates(self.picList,piclinks,init=True)
+            if len(updateList) < len(self.picList):
+                self._download(updateList)
+                return
+
         pageRe = re.compile(rf'/en/users/{artistID}/artworks\?p=(\d+)')
         pageTag = sorted(
             set(x['href'] for x in soup.find_all('a',href=pageRe)),
@@ -142,9 +153,16 @@ class Pixiv(ImageDownloader):
                 print('Waiting for images to load...')
                 soup = self._getPageSoup()
 
+                sizeb4 = len(self.picList)
                 self.picList += [ f'https://www.pixiv.net{x["href"]}'
                     for x in soup.find_all('a',href=re.compile(r'^/en/artworks/\d+$'))
                     if x.find() ] # this removes duplicates
+
+                if self.update:
+                    updateList += self.getLazyUpdates(self.picList[sizeb4:],piclinks)
+                    if len(updateList) < len(self.picList):
+                        self._download(updateList)
+                        return
 
         self.close()
 
