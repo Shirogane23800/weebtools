@@ -24,7 +24,6 @@ python -m weebtools --version
 ### utils
 
 - Used mostly for miscellaneous helper functions
-- Be sure to add `$HOME/bin` to your environment `$PATH` veriable
 
 #### General usage
 
@@ -51,6 +50,9 @@ Sites and url format supported:
 - yande.re
   - `https://yande.re/post/show/[PIC_ID]`
   - `https://yande.re/post?tags=[ARTIST_TAG_NAME]`
+- pixiv
+  - `https://www.pixiv.net/en/artworks/[PIC_ID]`
+  - `https://www.pixiv.net/en/users/[ARTIST_ID]` - can take different routes, but they all will get from `/artworks`
 - More to come!
 
 #### General usage:
@@ -118,6 +120,9 @@ $HOME/Downloads/images
 
 ---
 ## As a module
+
+- Full of dinosaurs with laser guns
+
 ```python
 >>> from weebtools.utils import *
 >>> getChromeVersion()

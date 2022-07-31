@@ -13,7 +13,10 @@ readme = "README.md"
 license = { file="LICENSE" }
 requires-python = ">=3.10"
 keywords=[
+    'yande',
     'yande.re',
+    'pixiv',
+    'pixiv.net',
 ]
 classifiers = [
     'Programming Language :: Python :: 3.10',
